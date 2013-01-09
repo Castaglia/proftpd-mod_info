@@ -1,0 +1,211 @@
+<!-- $Id: mod_info.html,v 1.2 2003/06/26 23:29:46 tj Exp tj $ -->
+<!-- $Source: /home/tj/proftpd/modules/doc/RCS/mod_info.html,v $ -->
+
+<html>
+<head>
+<title>ProFTPD module mod_info</title>
+</head>
+
+<body bgcolor=white>
+
+<hr><br>
+<center>
+<h2><b>ProFTPD module <code>mod_info</code></b></h2>
+</center>
+<hr><br>
+
+This module is contained in the <code>mod_info.c</code> and
+<code>mod_info.h</code> files for ProFTPD 1.2, and is not compiled by default.
+Installation instructions are discussed <a href="#Installation">here</a>.
+
+<p>
+The most current version of <code>mod_info</code> can be found at:
+<pre>
+  <a href="http://www.castaglia.org/proftpd/">http://www.castaglia.org/proftpd/</a>
+</pre>
+
+<h2>Author</h2>
+<p>
+Please contact TJ Saunders &lt;tj <i>at</i> castaglia.org&gt; with any
+questions, concerns, or suggestions regarding this module.
+
+<p>
+<h2>Directives</h2>
+<ul>
+  <li><a href="#InfoEngine">InfoEngine</a>
+  <li><a href="#InfoLog">InfoLog</a>
+</ul>
+
+<p>
+<h2><code>SITE</code> Commands</h2>
+<ul>
+  <li><a href="#SITE_STATUS">SITE STATUS</a>
+  <li><a href="#SITE_WHO">SITE WHO</a>
+</ul>
+
+<p>
+<hr>
+<h2><a name="InfoEngine">InfoEngine</a></h2>
+<strong>Syntax:</strong> InfoEngine <em>on|off</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_info<br>
+<strong>Compatibility:</strong> 1.2.9rc2 and later
+
+<p>
+The <code>InfoEngine</code> directive enables or disables the module's
+runtime engine.  If it is set to <em>off</em> this module provides no
+informational services via <code>SITE</code> commands.  Use this directive to
+disable the module instead of commenting out all <code>mod_info</code>
+directives.
+
+<p>
+<hr>
+<h2><a name="InfoLog">InfoLog</a></h2>
+<strong>Syntax:</strong> InfoLog <em>file|&quot;none&quot;</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_info<br>
+<strong>Compatibility:</strong> 1.2.9rc2 and later
+
+<p>
+The <code>InfoLog</code> directive is used to a specify a log file for
+<code>mod_info</code> reporting and debugging, and can be done a per-server
+basis.  The <em>file</em> parameter must be the full path to the file to use for
+logging.  Note that this path must <b>not</b> be to a world-writeable
+directory and, unless <code>AllowLogSymlinks</code> is explicitly set to
+<em>on</em> (generally a bad idea), the path must <b>not</b> be a symbolic
+link.
+
+<p>
+If <em>file</em> is &quot;none&quot;, no logging will be done at all; this
+setting can be used to override an <code>InfoLog</code> setting inherited from
+a <code>&lt;Global&gt;</code> context.
+
+<p>
+<hr>
+<h2><a name="SITE_STATUS">SITE STATUS</a></h2>
+<p>
+This <code>SITE</code> command displays various information about the
+server to which the client is connected.
+
+<p>
+This command can only be used once the client has successfully logged in.
+When allowing this command to be used, it is best to limit its use to only
+trusted client, <i>e.g.</i>:
+<pre>
+  &lt;Limit SITE_STATUS&gt;
+    AllowUser tj
+    DenyAll
+  &lt;/Limit&gt;
+</pre>
+
+<p>
+Example:
+<pre>
+  ftp&gt; quote site status
+  214-Server Information
+   Server Version: ProFTPD 1.2.9rc2 (CVS)
+   Server Built: Thu Jun 26 13:51:19 PDT 2003
+   Current Time: Thu Jun 26 13:53:23 2003
+   Server Uptime: 7 seconds
+ 
+  Modules:
+    mod_core.c
+    mod_xfer.c
+    mod_auth_unix.c
+    mod_auth_file.c
+    mod_auth.c
+    mod_ls.c
+    mod_log.c
+    mod_site.c
+    mod_auth_pam.c
+    mod_info.c
+ 
+  Overall Statistics:
+   (unavailable)
+ 
+  Virtual Server Statistics
+   (unavailable)
+
+  214 Please contact root@golem.castaglia.org for more information
+</pre>
+
+<p>
+See also: <a href="#SITE_WHO">SITE WHO</a>
+
+<p>
+<hr>
+<h2><a name="SITE_WHO">SITE WHO</a></h2>
+<p>
+This <code>SITE</code> command displays a list of logged in FTP users,
+similar to the <code>ftpwho</code> output.
+
+<p>
+This command can only be used once the client has successfully logged in.
+When allowing this command to be used, it is best to limit its use to only
+trusted client, <i>e.g.</i>:
+<pre>
+  &lt;Limit SITE_WHO&gt;
+    AllowUser tj
+    DenyAll
+  &lt;/Limit&gt;
+</pre>
+
+<p>
+Example:
+<pre>
+  ftp&gt; quote site who
+  214-Current Sessions:
+   tj: (golem.castaglia.org -&gt; 127.0.0.1:21) "SITE who"
+  
+  214 Please contact root@golem.castaglia.org for more information
+</pre>
+
+<p>
+<hr><br>
+<h2><a name="Usage">Usage</a></h2>
+Example configuration:
+<pre>
+  &lt;IfModule mod_info.c&gt;
+    &lt;Limit SITE_STATUS SITE_WHO&gt;
+      AllowUser admin
+      DenyAll
+    &lt;/Limit&gt;
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+<hr><br>
+<h2><a name="Installation">Installation</a></h2>
+To install <code>mod_info</code>, copy the <code>mod_info.c</code> and
+<code>mod_info.h</code> files into
+<pre>
+  <i>proftpd-dir</i>/contrib/
+</pre>
+after unpacking the latest proftpd-1.2 source code.  Then follow the usual
+steps for using third-party modules in proftpd:
+<pre>
+  ./configure --with-modules=mod_info
+  make
+  make install
+</pre>
+
+<p>
+<hr><br>
+
+Author: <i>$Author: tj $</i><br>
+Last Updated: <i>$Date: 2003/06/26 23:29:46 $</i><br>
+
+<br><hr>
+
+<font size=2><b><i>
+&copy; Copyright 2003 TJ Saunders<br>
+ All Rights Reserved<br>
+</i></b></font>
+
+<hr><br>
+
+</body>
+</html>
+
