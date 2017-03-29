@@ -22,7 +22,7 @@ script:
   # - find . -type f -name "*.c" -print | grep -v t\/ | xargs cppcheck 2>&1
   # - find . -type f -name "*.c" -print | grep -v t\/ | xargs rats --language=c
   - git clone --depth 50 https://github.com/proftpd/proftpd.git
-  - cp mod_info.c proftpd/contrib/
+  - cp mod_info.[ch] proftpd/contrib/
   - cd proftpd
   - ./configure --enable-devel=coverage --enable-dso --enable-tests --with-shared=mod_info
   - make
