@@ -523,7 +523,9 @@ MODRET info_site(cmd_rec *cmd) {
     pr_response_add(R_214, "Current Sessions:");
 
     pr_rewind_scoreboard();
-    while ((score = pr_scoreboard_read_entry()) != NULL) {
+    while ((score = pr_scoreboard_entry_read()) != NULL) {
+      pr_signals_handle();
+
       have_sessions = TRUE;
       pr_response_add(R_DUP, "%s: (%s -> %s) \"%s %s\"", score->sce_user,
         score->sce_client_name, score->sce_server_addr, score->sce_cmd,
