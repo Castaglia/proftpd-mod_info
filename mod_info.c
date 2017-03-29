@@ -1,7 +1,6 @@
 /*
  * ProFTPD: mod_info -- a module implementing informational SITE commands
- *
- * Copyright (c) 2003-2009 TJ Saunders
+ * Copyright (c) 2003-2017 TJ Saunders
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,8 +23,6 @@
  *
  * This is mod_info, contrib software for proftpd 1.3.x and above.
  * For more information contact TJ Saunders <tj@castaglia.org>.
- *
- * $Id: mod_info.c,v 1.6 2004/07/14 17:12:24 tj Exp tj $
  */
 
 #include "conf.h"
@@ -332,20 +329,22 @@ int info_register(const char *srcname,
 
 /* usage: InfoEngine on|off */
 MODRET set_infoengine(cmd_rec *cmd) {
-  int bool = -1;
+  int engine = -1;
   config_rec *c = NULL;
 
   CHECK_ARGS(cmd, 1);
   CHECK_CONF(cmd, CONF_ROOT|CONF_VIRTUAL|CONF_GLOBAL);
 
-  if ((bool = get_boolean(cmd, 1)) == -1)
+  engine = get_boolean(cmd, 1);
+  if (engine == -1) {
     CONF_ERROR(cmd, "expected Boolean parameter");
+  }
 
   c = add_config_param(cmd->argv[0], 1, NULL);
   c->argv[0] = pcalloc(c->pool, sizeof(unsigned char));
-  *((unsigned char *) c->argv[0]) = bool;
+  *((unsigned char *) c->argv[0]) = engine;
 
-  return HANDLED(cmd);
+  return PR_HANDLED(cmd);
 }
 
 /* usage: InfoLog path|"none" */
@@ -354,8 +353,7 @@ MODRET set_infolog(cmd_rec *cmd) {
   CHECK_CONF(cmd, CONF_ROOT|CONF_VIRTUAL|CONF_GLOBAL);
 
   add_config_param_str(cmd->argv[0], 1, cmd->argv[1]);
-
-  return HANDLED(cmd);
+  return PR_HANDLED(cmd);
 }
 
 #ifdef USE_INFO_TABLES
@@ -363,7 +361,7 @@ MODRET set_infolog(cmd_rec *cmd) {
 MODRET set_infotable(cmd_rec *cmd) {
   register info_regtab_t *regtab = NULL;
   unsigned char have_registration = FALSE;
-  char *tmp = NULL;
+  char *ptr = NULL;
 
   CHECK_ARGS(cmd, 1);
   CHECK_CONF(cmd, CONF_ROOT|CONF_VIRTUAL|CONF_GLOBAL);
@@ -371,25 +369,28 @@ MODRET set_infotable(cmd_rec *cmd) {
   /* Separate the parameter into the components.  The parameter is
    * given as one string to enhance its similarity to URL syntax.
    */
-  if ((tmp = strchr(cmd->argv[1], ':')) == NULL)
+  ptr = strchr(cmd->argv[1], ':');
+  if (ptr == NULL) {
     CONF_ERROR(cmd, "badly formatted parameter");
+  }
 
-  *tmp++ = '\0';
+  *ptr++ = '\0';
 
   /* Verify that the requested source type has been registered. */
-  for (regtab = info_regtab_list; regtab; regtab = regtab->next)
+  for (regtab = info_regtab_list; regtab; regtab = regtab->next) {
     if (strcasecmp(regtab->regtab_name, cmd->argv[1]) == 0) {
       have_registration = TRUE;
       break;
     }
+  }
 
-  if (!have_registration)
+  if (!have_registration) {
     CONF_ERROR(cmd, pstrcat(cmd->tmp_pool, "unsupported table source type: '",
       cmd->argv[1], "'", NULL));
+  }
 
-  add_config_param_str(cmd->argv[0], 2, cmd->argv[1], tmp);
-
-  return HANDLED(cmd);
+  add_config_param_str(cmd->argv[0], 2, cmd->argv[1], ptr);
+  return PR_HANDLED(cmd);
 }
 #endif
 
@@ -397,40 +398,45 @@ MODRET set_infotable(cmd_rec *cmd) {
  */
 
 MODRET info_post_pass(cmd_rec *cmd) {
-  if (!info_engine)
-    return DECLINED(cmd);
+  if (info_engine == FALSE) {
+    return PR_DECLINED(cmd);
+  }
 
   /* Update the session count. */
   info_overall_stats.nsessions++;
   info_vhost_stats.nsessions++;
 
-  return DECLINED(cmd);
+  return PR_DECLINED(cmd);
 }
 
 MODRET info_post_retr(cmd_rec *cmd) {
-  if (!info_engine)
-    return DECLINED(cmd);
+  if (info_engine == FALSE) {
+    return PR_DECLINED(cmd);
+  }
 
   /* Update the bytes/files downloaded count. */
-  return DECLINED(cmd);
+  return PR_DECLINED(cmd);
 }
 
 MODRET info_post_stor(cmd_rec *cmd) {
-  if (!info_engine)
-    return DECLINED(cmd);
+  if (info_engine == FALSE) {
+    return PR_DECLINED(cmd);
+  }
 
   /* Update the bytes/files uploaded count. */
-  return DECLINED(cmd);
+  return PR_DECLINED(cmd);
 }
 
 MODRET info_site(cmd_rec *cmd) {
   unsigned char *authenticated = NULL;
 
-  if (!info_engine)
-    return DECLINED(cmd);
+  if (info_engine == FALSE) {
+    return PR_DECLINED(cmd);
+  }
 
-  if (cmd->argc < 2)
-    return DECLINED(cmd);
+  if (cmd->argc < 2) {
+    return PR_DECLINED(cmd);
+  }
 
   if (strcasecmp(cmd->argv[1], "HELP") == 0) {
 
@@ -438,7 +444,7 @@ MODRET info_site(cmd_rec *cmd) {
     pr_response_add(R_214, "STATUS");
     pr_response_add(R_214, "WHO");
 
-    return DECLINED(cmd);
+    return PR_DECLINED(cmd);
   }
 
   /* The SITE commands all require that the client be authenticated first. */
@@ -451,7 +457,7 @@ MODRET info_site(cmd_rec *cmd) {
 
     if (!authenticated || *authenticated == FALSE) {
       pr_response_send(R_530, "Please login with USER and PASS");
-      return ERROR(cmd);
+      return PR_ERROR(cmd);
     }
 
     cmd_name = cmd->argv[0];
@@ -459,7 +465,7 @@ MODRET info_site(cmd_rec *cmd) {
     if (!dir_check(cmd->tmp_pool, cmd, "NONE", session.cwd, NULL)) {
       cmd->argv[0] = cmd_name;
       pr_response_add_err(R_550, "SITE %s: %s", cmd->arg, strerror(EACCES));
-      return ERROR(cmd);
+      return PR_ERROR(cmd);
     }
     cmd->argv[0] = cmd_name;
 
@@ -486,15 +492,14 @@ MODRET info_site(cmd_rec *cmd) {
       pr_response_add(R_DUP, "(unavailable)");
 
     pr_response_add(R_DUP, "\nVirtual Server Statistics");
-    if (info_tab) {
-
-    } else
+    if (info_tab == NULL) {
       pr_response_add(R_DUP, "(unavailable)\n");
+    }
 
     pr_response_add(R_DUP, "Please contact %s for more information",
       cmd->server->ServerAdmin ? cmd->server->ServerAdmin : "ftp-admin");
 
-    return HANDLED(cmd);
+    return PR_HANDLED(cmd);
  
   } else if (strcasecmp(cmd->argv[1], "WHO") == 0) {
     pr_scoreboard_entry_t *score = NULL;
@@ -503,7 +508,7 @@ MODRET info_site(cmd_rec *cmd) {
 
     if (!authenticated || *authenticated == FALSE) {
       pr_response_send(R_530, "Please login with USER and PASS");
-      return ERROR(cmd);
+      return PR_ERROR(cmd);
     }
 
     cmd_name = cmd->argv[0];
@@ -511,14 +516,16 @@ MODRET info_site(cmd_rec *cmd) {
     if (!dir_check(cmd->tmp_pool, cmd, "NONE", session.cwd, NULL)) {
       cmd->argv[0] = cmd_name;
       pr_response_add_err(R_550, "SITE %s: %s", cmd->arg, strerror(EACCES));
-      return ERROR(cmd);
+      return PR_ERROR(cmd);
     }
     cmd->argv[0] = cmd_name;
 
     pr_response_add(R_214, "Current Sessions:");
 
     pr_rewind_scoreboard();
-    while ((score = pr_scoreboard_read_entry()) != NULL) {
+    while ((score = pr_scoreboard_entry_read()) != NULL) {
+      pr_signals_handle();
+
       have_sessions = TRUE;
       pr_response_add(R_DUP, "%s: (%s -> %s) \"%s %s\"", score->sce_user,
         score->sce_client_name, score->sce_server_addr, score->sce_cmd,
@@ -526,26 +533,27 @@ MODRET info_site(cmd_rec *cmd) {
     }
     pr_restore_scoreboard();
 
-    if (!have_sessions)
+    if (!have_sessions) {
       pr_response_add(R_DUP, "(none)");
+    }
 
     pr_response_add(R_DUP, " ");
     pr_response_add(R_DUP, "Please contact %s for more information",
       cmd->server->ServerAdmin ? cmd->server->ServerAdmin : "ftp-admin");
 
-    return HANDLED(cmd);
+    return PR_HANDLED(cmd);
   }
 
-  return DECLINED(cmd);
+  return PR_DECLINED(cmd);
 }
 
 /* Event handlers
  */
 
 static void info_exit_ev(const void *event_data, void *user_data) {
-
-  if (!info_engine)
+  if (info_engine == FALSE) {
     return;
+  }
 
   if (info_tab) {
 /* This code is currently unused; it will be used once tracking of usage
@@ -684,8 +692,9 @@ static int info_sess_init(void) {
   unsigned char *info_enabled = get_param_ptr(main_server->conf,
     "InfoEngine", FALSE);
 
-  if (!info_enabled || *info_enabled == FALSE)
+  if (!info_enabled || *info_enabled == FALSE) {
     return 0;
+  }
 
   info_engine = TRUE;
 
@@ -761,5 +770,8 @@ module info_module = {
   info_init,
 
   /* Session initialization function */
-  info_sess_init
+  info_sess_init,
+
+  /* Module version */
+  MOD_INFO_VERSION
 };
