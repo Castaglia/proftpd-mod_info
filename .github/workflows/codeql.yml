@@ -44,8 +44,8 @@ jobs:
 
       - name: Prepare module source code
         run: |
-          cp proftpd-mod_info/mod_info.c proftpd/contrib/
-          cp proftpd-mod_info/mod_info.h proftpd/contrib/
+          cp proftpd-mod_info/mod_info.c contrib/
+          cp proftpd-mod_info/mod_info.h contrib/
 
       - name: Install Packages
         run: |
