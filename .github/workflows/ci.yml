@@ -36,20 +36,25 @@ jobs:
       - name: Checkout module source code
         uses: actions/checkout@v4
         with:
-          path: proftpd/contrib/mod_info
+          path: proftpd-mod_info
 
       - name: Whitespace check
         if: ${{ matrix.container == 'ubuntu:22.04' }}
         run: |
           apt-get update -qq
           apt-get install -y git
-          cd proftpd/contrib/mod_info
+          cd proftpd-mod_info
           if [[ -n $(git diff --check HEAD^) ]]; then
             echo "You must remove whitespace before submitting a pull request"
             echo ""
             git diff --check HEAD^
             exit 1
           fi
+
+     - name: Prepare module source code
+         run: |
+           cp proftpd-mod_info/mod_info.c proftpd/contrib/
+           cp proftpd-mod_info/mod_info.h proftpd/contrib/
 
       - name: Install Alpine packages
         if: ${{ matrix.container == 'alpine:3.18' }}
@@ -157,6 +162,6 @@ jobs:
 
       - name: Check HTML docs
         run: |
-          cd proftpd/contrib/mod_info
+          cd proftpd-mod_info
           echo "Processing mod_info.html"
           tidy -errors -omit -q mod_info.html | exit 0

@@ -37,10 +37,10 @@ jobs:
         with:
           repository: proftpd/proftpd
 
-      - name: Checkout mod_diskuse
+      - name: Checkout mod_info
         uses: actions/checkout@v4
         with:
-          path: contrib/mod_diskuse
+          path: contrib/mod_info
 
       - name: Install Packages
         run: |
@@ -48,15 +48,15 @@ jobs:
 
       - name: Configure
         run: |
-          ./configure --with-modules=mod_diskuse
+          ./configure --with-modules=mod_info
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v2
         with:
           languages: ${{ matrix.language }}
-          config-file: contrib/mod_diskuse/.codeql.yml
+          config-file: proftpd-mod_info/.codeql.yml
           queries: +security-and-quality
-          source-root: contrib/mod_diskuse
+          source-root: proftpd-mod_info
 
       - name: Build
         run: |
@@ -66,6 +66,6 @@ jobs:
         uses: github/codeql-action/analyze@v2
         with:
           category: "/language:${{ matrix.language }}"
-          checkout_path: contrib/mod_diskuse
+          checkout_path: proftpd-mod_info
           output: sarif-results
           upload: true
